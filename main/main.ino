@@ -180,23 +180,27 @@ bool parseJsonAndCalcOnHours(String input){
   }
 
   const char* date = doc[0]["date"]; // "2024-04-24"
+  Serial.println(date);
+  String eg =  doc[0]["tunnit"]["1"][1];
+
 
   // chekataan et tänään on tää päivä ennenkuin mennään laittamaan listalle.!
 
 // vartti hinnoittelut tänne sisään eli array varttikohtaisia hintoja.
 // 24 tuntia ja 4 varttia jokaisessa
   float prices_today[24][4];
-  for ( int i = 0; i<24; i++){
-    for ( int u = 0; u<4;u++){
-      prices_today[i][u] = doc[0]["tunnit"][i][u];
 
-      //ei vielä pelaa!
-      //Serial.println(doc[0]["tunnit"][i][u]);
+  JsonObject tunnit = doc[0]["tunnit"];
+  for (JsonPair kv : tunnit){
+      String tmp = kv.key().c_str();
+      int h = tmp.toInt();
+      for (int i = 0; i< 4; i++){
+        prices_today[h][i] = kv.value()[i];
+      }
     }
-  } 
-  
-  Serial.println(date);
   Serial.println(prices_today[1][2]);
+  
+  //Serial.println(prices_today[1][2]);
   return true;
 }
 
