@@ -17,6 +17,7 @@ int btnState = false;
 
 // runtime stuff
 String json_string;
+struct tm timeinfo; //  järjestelmän aika bro!!!
 
 void setup()
 {
@@ -105,7 +106,7 @@ void loop()
       delay(1);
       printLocalTime();
       json_string = getJsonFromServer();
-      Serial.println(json_string);
+      //Serial.println(json_string);
       delay(1);
       parseJsonAndCalcOnHours(json_string);
       // Disconnect from WiFi
@@ -150,57 +151,80 @@ String getJsonFromServer(){
 }
 
 
-// time from public ntp server
 void GetTimeFromNtp(){
+  // time from public ntp server  -- tarviaa daylight saving homman jomman!
   configTime(gmt_offset_sec, daylight_offset_sec, ntpServer);
   struct tm timeinfo;
 }
 
-
 void printLocalTime()
 {
-  struct tm timeinfo;
+
   if(!getLocalTime(&timeinfo)){
     Serial.println("No time available (yet)");
     return;
   }
+  Serial.print(" järjestelmän aika");
   Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
 }
 
 
+
+
 bool parseJsonAndCalcOnHours(String input){
   JsonDocument doc;
-
   DeserializationError error = deserializeJson(doc, input);
+  // vartti hinnoittelut tänne sisään eli array varttikohtaisia hintoja.
+  // 24 tuntia ja 4 varttia jokaisessa
+  float prices_today[24][4];
 
   if (error) {
     Serial.print("deserializeJson() failed: ");
-    //Serial.println(error.c_str());
+    Serial.println(error.c_str());
     return false;
   }
+  // ei virhettä
+  int size = doc.size();
+  //Serial.print("docin koko: "); Serial.println(size);
 
-  const char* date = doc[0]["date"]; // "2024-04-24"
-  Serial.println(date);
-  String eg =  doc[0]["tunnit"]["1"][1];
 
 
-  // chekataan et tänään on tää päivä ennenkuin mennään laittamaan listalle.!
+  for ( int i = 0; i< size; i++){
+    //JsonObject ob = doc[i].to<JsonObject>(); /// tää tekee jotain in place tyyppisesti bro!
+    Serial.println(i);
+    const char* d = doc[i]["date"];
 
-// vartti hinnoittelut tänne sisään eli array varttikohtaisia hintoja.
-// 24 tuntia ja 4 varttia jokaisessa
-  float prices_today[24][4];
-
-  JsonObject tunnit = doc[0]["tunnit"];
-  for (JsonPair kv : tunnit){
-      String tmp = kv.key().c_str();
-      int h = tmp.toInt();
-      for (int i = 0; i< 4; i++){
-        prices_today[h][i] = kv.value()[i];
-      }
+    struct tm parsed_date;
+    time_t now;
+    //struct tm *cur_date  = $timeinfo;
+    //localtime_r(&now,&timeinfo);
+    
+    strptime(d, "%Y-%m-%d", &parsed_date);
+    Serial.println(&timeinfo,  "%A, %B %d %Y %H:%M:%S");// nykyinen
+    Serial.println(&parsed_date,  "%A, %B %d %Y %H:%M:%S"); //parsettu
+    if (parsed_date.tm_year == timeinfo.tm_year &&
+        parsed_date.tm_mon == timeinfo.tm_mon &&
+        parsed_date.tm_mday == timeinfo.tm_mday) {
+          Serial.println("The parsed date is today.");
+          // tämän päivähn tedot tauluun kissa
+          JsonObject tunnit = doc[i]["tunnit"];
+          for (JsonPair kv : tunnit){
+              String tmp = kv.key().c_str();
+              int h = tmp.toInt();
+              for (int i = 0; i< 4; i++){
+                prices_today[h][i] = kv.value()[i];
+              }
+            }
+            } 
+    else {
+          //Serial.println("The parsed date is not today.\n");
+          return false;
     }
-  Serial.println(prices_today[1][2]);
-  
-  //Serial.println(prices_today[1][2]);
+  }
+  Serial.println(prices_today[20][0]);
+  SortTimesAsc(prices_today ); // toinen param target taulukko!!
   return true;
 }
+
+
 
