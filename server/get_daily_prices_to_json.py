@@ -25,12 +25,16 @@ class DayPrices:
 def getDatFromInternets(date):
     query = f"tunnit=24&tulos=sarja&aikaraja={date}"
     r = requests.get(f"{url}{query}")
+    print(query)
+    print("kissa")
     if r.status_code != 200:
             print(r.status_code)
             print(r.text)
             return
     data = r.json()
     dayprices = DayPrices(data,date)
+    print(dayprices.date_string)
+    print(dayprices.tunnit [0][0])
 
     return dayprices
     return json.dumps(dayprices.__to_dict__())
@@ -46,7 +50,7 @@ tomorow = datetime.date.today()  + datetime.timedelta(days = 1)
 prices_today  = getDatFromInternets(today)
 prices_tomorow = getDatFromInternets(tomorow)
 p_list =[]
-for p in [prices_today,prices_tomorow]:
+for p in [prices_tomorow,prices_today, ]:
      if p:
           p_list.append(p.__to_dict__())
 
