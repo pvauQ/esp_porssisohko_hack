@@ -188,12 +188,12 @@ bool parseJsonAndCalcOnHours(String input){
   //Serial.print("docin koko: "); Serial.println(size);
 
 
-
+  bool found = false;
   for ( int i = 0; i< size; i++){
     //JsonObject ob = doc[i].to<JsonObject>(); /// tää tekee jotain in place tyyppisesti bro!
-    Serial.println(i);
+    //Serial.println(i);
     const char* d = doc[i]["date"];
-
+    Serial.print("i looppi : "); Serial.println(i);
     struct tm parsed_date;
     time_t now;
     //struct tm *cur_date  = $timeinfo;
@@ -205,6 +205,7 @@ bool parseJsonAndCalcOnHours(String input){
     if (parsed_date.tm_year == timeinfo.tm_year &&
         parsed_date.tm_mon == timeinfo.tm_mon &&
         parsed_date.tm_mday == timeinfo.tm_mday) {
+          found = true;
           Serial.println("The parsed date is today.");
           // tämän päivähn tedot tauluun kissa
           JsonObject tunnit = doc[i]["tunnit"];
@@ -215,16 +216,73 @@ bool parseJsonAndCalcOnHours(String input){
                 prices_today[h][i] = kv.value()[i];
               }
             }
-            } 
+            Serial.println(prices_today[0][1]);
+          }
+
     else {
-          //Serial.println("The parsed date is not today.\n");
-          return false;
+          //Serial.println("The parsed date is not today.\n");        
     }
   }
-  Serial.println(prices_today[20][0]);
+  if (!found) { return false;}
+  //Serial.println(prices_today[20][0]);
   SortTimesAsc(prices_today ); // toinen param target taulukko!!
   return true;
 }
 
+
+
+void SortTimesAsc(float prices[24][4]){ // cee velho korjaa tän pass by reffiksi vielä 
+  Serial.println(prices[0][1]);
+  // flaten the array do a pseudo map :D
+  float value_arr[24*4];
+  int flat_i =0;
+  for (int i = 0; i < 4; i++){
+    for(int u = 0; u < 24; u++){
+      //Serial.println(prices[i][u]);
+      value_arr[flat_i] =  prices[i][u];
+      flat_i++;
+    }
+  }
+  // timeslot array
+  int time_slot_arr[24*4];
+  for ( int i = 0 ; i < 24*4; i++){
+    time_slot_arr[i] = i;
+  }
+  Serial.println(value_arr[1]);
+  // sort value arr and do same transforms on timeslot arr
+  
+  // insertion sort 
+
+  insertionSort(value_arr, time_slot_arr, 94);
+
+}
+
+/* Function to sort an array using insertion sort*/
+void insertionSort(float arr[], int ind_arr[], int n)
+{
+  Serial.println(arr[1]);
+    float key, ind_key;
+    int i, j;
+  
+    for (i = 1; i < n; i++) {
+        key = arr[i];
+        ind_key = ind_arr[i];
+        j = i - 1;
+
+        while (j >= 0 && arr[j] > key) {
+            arr[j + 1] = arr[j];
+            ind_arr[j + 1] = ind_arr[j];
+            j = j - 1;
+        }
+        arr[j + 1] = key;
+        ind_arr[j+1] = ind_key;
+    }
+ 
+
+ for (int i = 0; i<94;i++){
+  Serial.println(arr[i]);
+  Serial.println(ind_arr[i]);
+ }
+}
 
 
