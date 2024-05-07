@@ -4,11 +4,13 @@
 #include <time.h>
 #include <ArduinoJson.h>
 
+
 // time stuff
 const char* ntpServer = "fi.pool.ntp.org";
 const int daylight_offset_sec =  3600;
 const int gmt_offset_sec = 2 * 3600;
 
+char* api_url = "http://pvauq.eu/dayprices.json";
 const char* ssid     = "kuusipuu";
 const char* password = "koivupuu";
 
@@ -25,6 +27,8 @@ bool on_off_arr[24][4];
 int num_on_slots = 16 ; // default time to keep electricity on  15min*4 = 16 slots = 4h
 int used_slots = 0;
 
+uint tmp_timer = 0; // this just temp, remove when we have non blocking timer
+
 void setup()
 {
 
@@ -33,102 +37,15 @@ void setup()
 
     // Set GPIO0 Boot button as input
     pinMode(btnGPIO, INPUT);
+    pinMode(4, OUTPUT);
+    digitalWrite(4, LOW);
+
 
     // We start by connecting to a WiFi network
     // To debug, please enable Core Debug Level to Verbose
 
     connectWifi();
 
-}
-void connectWifi(){
-    Serial.print("[WiFi] Connecting to ");
-    Serial.println(ssid);
-
-    WiFi.begin(ssid, password);
-// Auto reconnect is set true as default
-// To set auto connect off, use the following function
-// WiFi.setAutoReconnect(false)
-
-    // Will try for about 10 seconds (20x 500ms)
-    int tryDelay = 500;
-    int numberOfTries = 20;
-
-    // Wait for the WiFi event
-    while (true) {
-        
-        switch(WiFi.status()) {
-          case WL_NO_SSID_AVAIL:
-            Serial.println("[WiFi] SSID not found");
-            break;
-          case WL_CONNECT_FAILED:
-            Serial.print("[WiFi] Failed - WiFi not connected! Reason: ");
-            return;
-            break;
-          case WL_CONNECTION_LOST:
-            Serial.println("[WiFi] Connection was lost");
-            break;
-          case WL_SCAN_COMPLETED:
-            Serial.println("[WiFi] Scan is completed");
-            break;
-          case WL_DISCONNECTED:
-            Serial.println("[WiFi] WiFi is disconnected");
-            break;
-          case WL_CONNECTED:
-            Serial.println("[WiFi] WiFi is connected!");
-            Serial.print("[WiFi] IP address: ");
-            Serial.println(WiFi.localIP());
-
-            getJsonFromServer();
-            GetTimeFromNtp();
-            return;
-            break;
-          default:
-            Serial.print("[WiFi] WiFi Status: ");
-            Serial.println(WiFi.status());
-            break;
-        }
-        delay(tryDelay);
-        
-        if(numberOfTries <= 0){
-          Serial.print("[WiFi] Failed to connect to WiFi!");
-          // Use disconnect function to force stop trying to connect
-          WiFi.disconnect();
-          return;
-        } else {
-          numberOfTries--;
-        }
-    }
-}
-void CreateOnOffArray(){
-// array of 24*4 slots, where slot can be on or off;  
-  // puhdistetaan ensin
-  bool flat_on_off_arr[94];
-  for (int i = 0 ; i<24*4; i++){
-    flat_on_off_arr[i] = false;
-  }
-
-  for ( int i = 0; i < num_on_slots; i++){
-    flat_on_off_arr[time_slot_arr[i]] = true;
-  } // nyt on off sisältää true jokaisessa paikassa jossa haluaan olla päällä.
-
-  // saatanan laiton looppi
-  int flat_index = 0; // yksiuloteisen etsimis indeksi
-  for(int i = 0; i<24; i++){
-    for(int u =0; u <4; u++){
-      on_off_arr[i][u] =flat_on_off_arr[flat_index];
-      flat_index++;
-    }
-  }
-}
-
-void SetOnOff(){
-  int cur_hour = timeinfo.tm_hour;
-  int cur_minute  = timeinfo.tm_min;
-  int vartti = cur_minute/15;
-  if (on_off_arr[cur_hour][vartti] == true){
-    // outputti piälle.
-
-  }
 }
 
 
@@ -139,65 +56,38 @@ void loop()
     btnState = digitalRead(btnGPIO);
     
     if (btnState == LOW) {
+      //:TODO tähän logiikka jolla varmistellaan että ollaan wiifissä
 
       GetTimeFromNtp();
-      delay(1);
+      delay(5);
       printLocalTime();
-      json_string = getJsonFromServer();
-      //Serial.println(json_string);
-      delay(1);
-      parseJsonAndCalcOnHours(json_string);
-      
-    }    
-}
-
-String getJsonFromServer(){
-//hakee päivähinnat jsonin  
-  HTTPClient http;
-  String payload;
-
-  Serial.println("[HTTP] begin...\n");
-  http.begin("http://pvauq.eu/dayprices.json"); //HTTP
-
-  Serial.println("[HTTP] GET...\n");
-  // start connection and send HTTP header
-  int httpCode = http.GET();
-
-  // httpCode will be negative on error
-  if(httpCode > 0) {
-      // HTTP header has been send and Server response header has been handled
-      Serial.println("[HTTP] GET... code: %d\n"+ httpCode);
-
-      // file found at server
-      if(httpCode == HTTP_CODE_OK) {
-          payload = http.getString();
-          Serial.println( http.errorToString(httpCode).c_str());
-          http.end();
-          
+      json_string = getJsonFromServer(api_url);
+      delay(5);
+      if (parseJsonAndCalcOnHours(json_string)){ // eli jsoni parseentui nätisti ja kova oletus että kaikki alafunkkarit toimi
+        CreateOnOffArray(time_slot_arr, on_off_arr); // 1d time_slotit ja 2d on off array
+        
       }
-  } else {
-      Serial.println( http.errorToString(httpCode).c_str());
-      http.end();
+    }
+    delay(10);
+    tmp_timer++;
+    if (tmp_timer > 6000) {
+      SetOnOff();
+    }   
+}
+
+void SetOnOff(){
+  int cur_hour = timeinfo.tm_hour;
+  int cur_minute  = timeinfo.tm_min;
+  int vartti = cur_minute/15;
+  if (on_off_arr[cur_hour][vartti] == true){
+    digitalWrite(4,HIGH);
   }
-  return payload;
-}
-
-
-void GetTimeFromNtp(){
-  // time from public ntp server  -- tarviaa daylight saving homman jomman!
-  configTime(gmt_offset_sec, daylight_offset_sec, ntpServer);
-  struct tm timeinfo;
-}
-
-void printLocalTime(){
-
-  if(!getLocalTime(&timeinfo)){
-    Serial.println("No time available (yet)");
-    return;
+  else{
+    digitalWrite(4,LOW);
   }
-  Serial.print(" järjestelmän aika");
-  Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
 }
+
+
 
 
 
@@ -244,8 +134,7 @@ bool parseJsonAndCalcOnHours(String input){
               for (int i = 0; i< 4; i++){
                 prices_today[h][i] = kv.value()[i];
               }
-            }
-            
+            }            
           }
 
     else {
@@ -255,54 +144,13 @@ bool parseJsonAndCalcOnHours(String input){
   if (!found) 
         { return false;}
 
-  SortTimesAsc(prices_today ); 
+  SortTimesAsc(prices_today, time_slot_arr ); 
 
   return true;
 }
 
 
 
-void SortTimesAsc(float prices[24][4]){
-  Serial.println(prices[0][1]);
-  // flaten the array do a pseudo map :D
-  float value_arr[24*4];
-  int flat_i =0;
-  for (int i = 0; i < 4; i++){
-    for(int u = 0; u < 24; u++){
-      value_arr[flat_i] =  prices[i][u];
-      flat_i++;
-    }
-  }
-  // timeslot array populated with  matching indices
-   for ( int i = 0 ; i < 24*4; i++){
-    time_slot_arr[i] = i;
-  }
-
-  // insertion sort 
-    insertionSort(value_arr, time_slot_arr, 94);
-  
-}
-
-/* Function to sort an array using insertion sort*/
-void insertionSort(float arr[], int timeslot_arr[], int n){ // nää on pass by ref vaikka en täysin käsitäkkään!!
-  // sorts based on first arr  does transorms on both arrays.
-  //Serial.println(arr[1]);
-    float key, ind_key;
-    int i, j;
-  
-    for (i = 1; i < n; i++) {
-        key = arr[i];
-        ind_key = timeslot_arr[i];
-        j = i - 1;
-        while (j >= 0 && arr[j] > key) {
-            arr[j + 1] = arr[j];
-            timeslot_arr[j + 1] = timeslot_arr[j];
-            j = j - 1;
-        }
-        arr[j + 1] = key;
-        timeslot_arr[j+1] = ind_key;
-    }
-}
 
 
 
