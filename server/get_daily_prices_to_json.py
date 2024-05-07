@@ -7,20 +7,14 @@ import json
 FILE_PATH = ""
 
 
-class DayPrices:
-    tunnit= {key: None for key in range(24)}
-    date_string = ""
-
-    def __init__(self, j_data,date):
-        self.date_string = date.strftime("%Y-%m-%d")
-
-        for i in range(len(j_data)):
-            ## ne on järjestyksessä, ei ees chekata
-            self.tunnit[i] = [float(j_data[i]["hinta"]) for k in range(4)] ## koska 15 min hinnoittelu incoming in 2025?
-    
-    def __to_dict__(self):
-        return {"date":self.date_string,  "tunnit":self.tunnit}
-
+def parseToDict(data, date):
+        
+    date_string = date.strftime("%Y-%m-%d") 
+    tunnit = {}
+    for i in range(len(data)):
+        tunnit[i] = [float(data[i]["hinta"]) for k in range(4)] ## koska 15 min hinnoittelu incoming in 2025?
+    res = {"date":date_string,  "tunnit":tunnit}
+    return res
 
 def getDatFromInternets(date):
     query = f"tunnit=24&tulos=sarja&aikaraja={date}"
@@ -32,13 +26,7 @@ def getDatFromInternets(date):
             print(r.text)
             return
     data = r.json()
-    dayprices = DayPrices(data,date)
-    print(dayprices.date_string)
-    print(dayprices.tunnit [0][0])
-
-    return dayprices
-    return json.dumps(dayprices.__to_dict__())
-
+    return data
 
 
 url  = "https://www.sahkohinta-api.fi/api/v1/halpa?" # vaihtaa sit tilale muun kun jos tarvii.
@@ -46,15 +34,13 @@ url  = "https://www.sahkohinta-api.fi/api/v1/halpa?" # vaihtaa sit tilale muun k
 today = datetime.date.today()
 tomorow = datetime.date.today()  + datetime.timedelta(days = 1)
 
-
 prices_today  = getDatFromInternets(today)
 prices_tomorow = getDatFromInternets(tomorow)
-p_list =[]
-for p in [prices_tomorow,prices_today, ]:
-     if p:
-          p_list.append(p.__to_dict__())
+p1 = parseToDict(prices_today,today)
+p2= parseToDict(prices_tomorow,tomorow)
 
-prices = json.dumps(p_list, default=lambda x: x.__dict__)
+
+prices = json.dumps([p1,p2])
 print(prices)
 
 file_path = f"{FILE_PATH}dayprices.json"  
