@@ -22,11 +22,12 @@ void SortTimesAsc(float prices[24][4], int time_slot_arr[24*4] ){ //  nää on p
   // flaten the array do a pseudo map price - index  in timeslot array
   float value_arr[24*4];
   int flat_i =0;
-  for (int i = 0; i < 4; i++){
-    for(int u = 0; u < 24; u++){
+  for (int i = 0; i < 24; i++){
+    for(int u = 0; u < 4; u++){
       value_arr[flat_i] =  prices[i][u];
       flat_i++;
     }
+    //Serial.print("tunnilla:");Serial.print(i); Serial.print("hinta:");Serial.println(value_arr[flat_i - 1],4);
   }
   // timeslot array populated with  matching indices
    for ( int i = 0 ; i < 24*4; i++){
@@ -59,9 +60,13 @@ void insertionSort(float arr[], int timeslot_arr[], int n){ // nää on pass by 
         arr[j + 1] = key;
         timeslot_arr[j+1] = ind_key;
     }
+    /*
+    for (i = 1; i < n; i++) {
+      Serial.println(arr[i]);
+    } */
 }
 
-void CreateOnOffArray(int  time_slot_arr[24*4], bool on_off_arr[24][4]){
+void CreateOnOffArray(int  time_slot_arr[24*4], bool on_off_arr[24][4], int num_on_slots ){
 // array of 24*4 slots, where slot can be on or off;  
 // 
 // first we clean the array to have false in each slot
@@ -80,8 +85,8 @@ void CreateOnOffArray(int  time_slot_arr[24*4], bool on_off_arr[24][4]){
     for(int u =0; u <4; u++){
       on_off_arr[i][u] =flat_on_off_arr[flat_index];
       // comment next line kun toimii
-      Serial.print(i); Serial.print(u); Serial.print(" : "); Serial.println(on_off_arr[i][u]);
       flat_index++;
     }
+    Serial.print( "tunilla"); Serial.print(i); Serial.print(" on / off : "); Serial.println(on_off_arr[i][1]);
   }
 }

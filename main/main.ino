@@ -64,14 +64,15 @@ void loop()
       json_string = getJsonFromServer(api_url);
       delay(5);
       if (parseJsonAndCalcOnHours(json_string)){ // eli jsoni parseentui nätisti ja kova oletus että kaikki alafunkkarit toimi
-        CreateOnOffArray(time_slot_arr, on_off_arr); // 1d time_slotit ja 2d on off array
-        
+        CreateOnOffArray(time_slot_arr, on_off_arr, num_on_slots); // 1d time_slotit ja 2d on off array
+
       }
     }
     delay(10);
     tmp_timer++;
     if (tmp_timer > 6000) {
       SetOnOff();
+      tmp_timer = 0;
     }   
 }
 
