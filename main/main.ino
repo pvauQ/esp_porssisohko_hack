@@ -4,18 +4,20 @@
 #include <time.h>
 #include <ArduinoJson.h>
 
+// insert ur stuff here
+char* api_url = "http://pvauq.eu/dayprices.json";
+const char* ssid     = "kuusipuu"; 
+const char* password = "koivupuu";
 
 // time stuff
 const char* ntpServer = "fi.pool.ntp.org";
 const int daylight_offset_sec =  3600;
 const int gmt_offset_sec = 2 * 3600;
 
-char* api_url = "http://pvauq.eu/dayprices.json";
-const char* ssid     = "kuusipuu";
-const char* password = "koivupuu";
 
 int btnGPIO = 0;
 int btnState = false;
+int ohitus_btn_state = false;
 
 // runtime stuff
 String json_string;
@@ -24,67 +26,138 @@ int time_slot_arr[24*4]; //  kokoelma time_slotteja hinta järjestyksessä 15 mi
 struct tm t_slot_array_date; // tarkistellaan että toimitaan oikean päivän mukaan
                             // fallback array?
 bool on_off_arr[24][4];
-int num_on_slots = 16 ; // default time to keep electricity on  15min*4 = 16 slots = 4h
+int num_on_slots = 20 ; // default time to keep electricity on  15min*5 = 20 slots = 5h
 int used_slots = 0;
-
+bool need_new_data = true;
 uint tmp_timer = 0; // this just temp, remove when we have non blocking timer
+bool ohitetaan = false; // onko koko paska käytössä vai ohitetaanko !!
+
+
 
 void setup()
 {
+    pinMode(btnGPIO, INPUT); //  esp boardilla olöeva buttoni
+    pinMode(4, OUTPUT); // kontaktori
+
+    //status ledit
+    pinMode(14, OUTPUT);
+    pinMode(27, OUTPUT);
+    pinMode(26, OUTPUT);
+    pinMode(25, OUTPUT);
+    // nabbulat
+    pinMode(18, INPUT_PULLUP);
+    //pinMode(19, INPUT);
+    pinMode(22, INPUT_PULLUP);
+    pinMode(23, INPUT_PULLUP);
+
+
 
     Serial.begin(115200);
+    digitalWrite(4, LOW); //
+    connectWifi(); 
+
+    // status
+
+}
+
+void loop()
+{
+    digitalWrite(25, ohitetaan);// kirjoitetaan viimoiseen lediin ohituksen tila.
+
+
+    btnState = digitalRead(btnGPIO);
+    ohitus_btn_state = digitalRead(22);
+
+    
+    if ( digitalRead(23) == 0){
+      delay(300); // köyhän miehen debounce :D
+      Serial.println("kerpele");
+      toogleOhitus();
+    }
+    if (btnState == LOW || digitalRead(18) == 0) {// pakko update
+      mainUpdate();
+    }
+
     delay(10);
+    tmp_timer++;
+    if (tmp_timer > 6000) { // tämä ois kiva olla jollain kivalla non blokkaavalla,  ehkä seuraavalla kerralla...
 
-    // Set GPIO0 Boot button as input
-    pinMode(btnGPIO, INPUT);
-    pinMode(4, OUTPUT);
-    digitalWrite(4, LOW);
+      SetOnOff();
+      tmp_timer = 0;
+      mainUpdate(); // tämän voisi ajaa paljon harvemminkin. toisaalta näin on aika varmaa että jossain vaiheessa saadaan yhteys ja homma hoituu
 
+      
+    }   
+}
 
-    // We start by connecting to a WiFi network
-    // To debug, please enable Core Debug Level to Verbose
+bool toogleOhitus(){
+  ohitetaan = !ohitetaan;
+  SetOnOff();
+  return ohitetaan;
 
-    connectWifi();
+  
 
 }
 
 
+bool doNetworkStuff(){
+    bool connection_ok;
+    connection_ok = connectWifi();
 
-void loop()
-{
-    // Read the button state
-    btnState = digitalRead(btnGPIO);
-    
-    if (btnState == LOW) {
-      //:TODO tähän logiikka jolla varmistellaan että ollaan wiifissä
-
+    if (connection_ok){
       GetTimeFromNtp();
       delay(5);
       printLocalTime();
       json_string = getJsonFromServer(api_url);
-      delay(5);
-      if (parseJsonAndCalcOnHours(json_string)){ // eli jsoni parseentui nätisti ja kova oletus että kaikki alafunkkarit toimi
-        CreateOnOffArray(time_slot_arr, on_off_arr, num_on_slots); // 1d time_slotit ja 2d on off array
-
-      }
+      return true;
     }
-    delay(10);
-    tmp_timer++;
-    if (tmp_timer > 6000) {
-      SetOnOff();
-      tmp_timer = 0;
-    }   
+    else {return false;}
 }
+
+void  mainUpdate(){
+
+    bool network_success = doNetworkStuff();
+    bool parse_success =  parseJsonAndCalcOnHours(json_string);
+    if(network_success & parse_success){
+      //  this should be the default
+      CreateOnOffArray(time_slot_arr, on_off_arr, num_on_slots);
+      digitalWrite(27, HIGH);
+      digitalWrite(26, HIGH);
+    }
+    else if (!network_success & parse_success){
+      // ei  nettiä, mutta vanhasta json stringistä saatiin tämän päivän hinnat :)
+      CreateOnOffArray(time_slot_arr, on_off_arr, num_on_slots);
+      digitalWrite(27, LOW);
+      digitalWrite(26, HIGH);
+
+    }
+    else{
+      //  kaikki feilaa 
+      // täytyy käyttää default tunteja.
+      createDefaultOnOffArray(on_off_arr, num_on_slots);
+      digitalWrite(27, LOW);
+      digitalWrite(26, LOW);
+    }
+
+}
+
+
 
 void SetOnOff(){
   int cur_hour = timeinfo.tm_hour;
   int cur_minute  = timeinfo.tm_min;
   int vartti = cur_minute/15;
-  if (on_off_arr[cur_hour][vartti] == true){
+  if (ohitetaan){
     digitalWrite(4,HIGH);
+    digitalWrite(14, HIGH);
+  }
+  else if (on_off_arr[cur_hour][vartti] == true){
+    digitalWrite(4,HIGH);
+    digitalWrite(14, HIGH); // LEDI
   }
   else{
     digitalWrite(4,LOW);
+    digitalWrite(14, LOW);
   }
 }
 

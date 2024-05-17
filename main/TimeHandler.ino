@@ -69,7 +69,7 @@ void insertionSort(float arr[], int timeslot_arr[], int n){ // nää on pass by 
 void CreateOnOffArray(int  time_slot_arr[24*4], bool on_off_arr[24][4], int num_on_slots ){
 // array of 24*4 slots, where slot can be on or off;  
 // 
-// first we clean the array to have false in each slot
+// first we clean the array to have false in each slot surely there is c way to this :D
   bool flat_on_off_arr[94];
   for (int i = 0 ; i<24*4; i++){
     flat_on_off_arr[i] = false;
@@ -84,9 +84,26 @@ void CreateOnOffArray(int  time_slot_arr[24*4], bool on_off_arr[24][4], int num_
   for(int i = 0; i<24; i++){
     for(int u =0; u <4; u++){
       on_off_arr[i][u] =flat_on_off_arr[flat_index];
-      // comment next line kun toimii
       flat_index++;
     }
     Serial.print( "tunilla"); Serial.print(i); Serial.print(" on / off : "); Serial.println(on_off_arr[i][1]);
   }
+}
+
+
+void createDefaultOnOffArray(bool on_off_arr[24][4], int num_slots){
+  // tässä on sellainen bugi, että  pyöristää alempaan tuntiin jos num slots  ei ole jaollinen 4
+  int def_hours_arr[24] = {5,4,3,2,1,0,15,14,13,12,16,17,18,6,23,19,20,21,22,7,11,10,9,8};
+
+  bool local_arr[24][4];
+
+  for ( int i =0; i<num_slots/4; i++){
+    for( int u = 0; u<4; u++){
+      local_arr[def_hours_arr[i]][u] =true;
+    }
+    Serial.print( "päällä : tunilla "); Serial.println(def_hours_arr[i]);
+  }
+  on_off_arr= local_arr;
+  //delay(10);
+
 }
