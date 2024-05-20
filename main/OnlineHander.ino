@@ -1,6 +1,7 @@
 /* in this file we do all off the wifi communication stuff including 
 connection and actually getting all the data
 */
+String timezone = "EET-2EEST,M3.5.0/3,M10.5.0/4";
 
  String getJsonFromServer(char* url){
 //hakee päivähinnat jsonin  
@@ -34,10 +35,21 @@ connection and actually getting all the data
 }
 
 
-void GetTimeFromNtp(){
-  // time from public ntp server  -- tarviaa daylight saving homman jomman!
-  configTime(gmt_offset_sec, daylight_offset_sec, ntpServer);
+void initTime(){
   struct tm timeinfo;
+
+  Serial.println("Setting up time");
+  configTime(0, 0, "pool.ntp.org");    // First connect to NTP server, with 0 TZ offset
+  if(!getLocalTime(&timeinfo)){
+    Serial.println("  Failed to obtain time");
+    return;
+  }
+  Serial.println("  Got the time from NTP");
+  // Now we can set the real timezone
+  Serial.printf("  Setting Timezone to %s\n",timezone.c_str());
+  setenv("TZ",timezone.c_str(),1);  //  Now adjust the TZ.  Clock settings are adjusted to show the new local time
+  tzset();
+
 }
 
 

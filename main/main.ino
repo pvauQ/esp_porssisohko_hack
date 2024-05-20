@@ -9,12 +9,6 @@ char* api_url = "http://pvauq.eu/dayprices.json";
 const char* ssid     = "kuusipuu"; 
 const char* password = "koivupuu";
 
-// time stuff
-const char* ntpServer = "fi.pool.ntp.org";
-const int daylight_offset_sec =  3600;
-const int gmt_offset_sec = 2 * 3600;
-
-
 int btnGPIO = 0;
 int btnState = false;
 int ohitus_btn_state = false;
@@ -30,13 +24,14 @@ int num_on_slots = 20 ; // default time to keep electricity on  15min*5 = 20 slo
 int used_slots = 0;
 bool need_new_data = true;
 uint tmp_timer = 0; // this just temp, remove when we have non blocking timer
+uint tmp_counter =0;
 bool ohitetaan = false; // onko koko paska käytössä vai ohitetaanko !!
 
 
 
 void setup()
 {
-    pinMode(btnGPIO, INPUT); //  esp boardilla olöeva buttoni
+    pinMode(btnGPIO, INPUT); //  esp boardilla oleva buttoni
     pinMode(4, OUTPUT); // kontaktori
 
     //status ledit
@@ -54,7 +49,8 @@ void setup()
 
     Serial.begin(115200);
     digitalWrite(4, LOW); //
-    connectWifi(); 
+    doNetworkStuff();
+    mainUpdate();
 
     // status
 
@@ -71,7 +67,6 @@ void loop()
     
     if ( digitalRead(23) == 0){
       delay(300); // köyhän miehen debounce :D
-      Serial.println("kerpele");
       toogleOhitus();
     }
     if (btnState == LOW || digitalRead(18) == 0) {// pakko update
@@ -79,12 +74,15 @@ void loop()
     }
 
     delay(10);
-    tmp_timer++;
+    tmp_counter++;
     if (tmp_timer > 6000) { // tämä ois kiva olla jollain kivalla non blokkaavalla,  ehkä seuraavalla kerralla...
 
       SetOnOff();
-      tmp_timer = 0;
-      mainUpdate(); // tämän voisi ajaa paljon harvemminkin. toisaalta näin on aika varmaa että jossain vaiheessa saadaan yhteys ja homma hoituu
+      tmp_timer++;
+      if (tmp_counter >10){ // käydään netissä ja tehrään kaikki kiva.
+        tmp_timer= 0;
+        mainUpdate(); // tämän voisi ajaa paljon harvemminkin( kerran vuorokaudessa). toisaalta näin on aika varmaa että jossain vaiheessa saadaan yhteys ja homma hoituu
+      }
 
       
     }   
@@ -93,6 +91,8 @@ void loop()
 bool toogleOhitus(){
   ohitetaan = !ohitetaan;
   SetOnOff();
+  Serial.print(" ohitus: ");
+  Serial.println(ohitetaan);
   return ohitetaan;
 
   
@@ -105,7 +105,8 @@ bool doNetworkStuff(){
     connection_ok = connectWifi();
 
     if (connection_ok){
-      GetTimeFromNtp();
+      initTime();
+      //GetTimeFromNtp();
       delay(5);
       printLocalTime();
       json_string = getJsonFromServer(api_url);

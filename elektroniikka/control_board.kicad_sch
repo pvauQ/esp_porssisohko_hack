@@ -2474,6 +2474,16 @@
 		)
 		(uuid "c0d8e341-c552-4b1d-b03d-e7030c11a277")
 	)
+	(text "IF using 24 volt suply this will heat up to much, use  switching regulator instead"
+		(exclude_from_sim no)
+		(at 47.244 70.612 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "cfa3c517-f0aa-4a46-aef7-8ed582bce42d")
+	)
 	(text "Select  input voltage based on contactor / relay you are using"
 		(exclude_from_sim no)
 		(at 61.214 24.13 0)
