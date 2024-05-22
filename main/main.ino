@@ -5,9 +5,9 @@
 #include <ArduinoJson.h>
 
 // insert ur stuff here
-char* api_url = "http://pvauq.eu/dayprices.json";
-const char* ssid     = "kuusipuu"; 
-const char* password = "koivupuu";
+char* api_url = "INSERT HERE";
+const char* ssid     = "INSERT HERE"; 
+const char* password = "INSERT HERE";
 
 int btnGPIO = 0;
 int btnState = false;
