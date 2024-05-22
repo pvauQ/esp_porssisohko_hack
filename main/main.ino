@@ -23,8 +23,8 @@ bool on_off_arr[24][4];
 int num_on_slots = 20 ; // default time to keep electricity on  15min*5 = 20 slots = 5h
 int used_slots = 0;
 bool need_new_data = true;
-uint tmp_timer = 0; // this just temp, remove when we have non blocking timer
-uint tmp_counter =0;
+uint on_off_counter = 0; // this just temp, remove when we have non blocking timer
+uint main_upp_counter =0;
 bool ohitetaan = false; // onko koko paska käytössä vai ohitetaanko !!
 
 
@@ -74,13 +74,14 @@ void loop()
     }
 
     delay(10);
-    tmp_counter++;
-    if (tmp_timer > 6000) { // tämä ois kiva olla jollain kivalla non blokkaavalla,  ehkä seuraavalla kerralla...
-
+    on_off_counter++;
+    if (on_off_counter > 6000) { // tämä ois kiva olla jollain kivalla non blokkaavalla,  ehkä seuraavalla kerralla...
       SetOnOff();
-      tmp_timer++;
-      if (tmp_counter >10){ // käydään netissä ja tehrään kaikki kiva.
-        tmp_timer= 0;
+      on_off_counter =0;
+      
+      main_upp_counter++;
+      if (main_upp_counter >10){ // käydään netissä ja tehrään kaikki kiva.
+        main_upp_counter= 0;
         mainUpdate(); // tämän voisi ajaa paljon harvemminkin( kerran vuorokaudessa). toisaalta näin on aika varmaa että jossain vaiheessa saadaan yhteys ja homma hoituu
       }
 
