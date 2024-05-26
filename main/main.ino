@@ -5,9 +5,9 @@
 #include <ArduinoJson.h>
 
 // insert ur stuff here
-char* api_url = "INSERT HERE";
-const char* ssid     = "INSERT HERE"; 
-const char* password = "INSERT HERE";
+char* api_url = "http://pvauq.eu/dayprices.json";
+const char* ssid     = "kuusipuu"; 
+const char* password = "koivupuu";
 
 int btnGPIO = 0;
 int btnState = false;
@@ -75,12 +75,12 @@ void loop()
 
     delay(10);
     on_off_counter++;
-    if (on_off_counter > 6000) { // tämä ois kiva olla jollain kivalla non blokkaavalla,  ehkä seuraavalla kerralla...
+    if (on_off_counter > 3000) { // tämä ois kiva olla jollain kivalla non blokkaavalla,  ehkä seuraavalla kerralla...
       SetOnOff();
       on_off_counter =0;
       
       main_upp_counter++;
-      if (main_upp_counter >10){ // käydään netissä ja tehrään kaikki kiva.
+      if (main_upp_counter >20){ // käydään netissä ja tehrään kaikki kiva.
         main_upp_counter= 0;
         mainUpdate(); // tämän voisi ajaa paljon harvemminkin( kerran vuorokaudessa). toisaalta näin on aika varmaa että jossain vaiheessa saadaan yhteys ja homma hoituu
       }
@@ -146,14 +146,18 @@ void  mainUpdate(){
 
 
 void SetOnOff(){
+  getLocalTime(&timeinfo);
   int cur_hour = timeinfo.tm_hour;
   int cur_minute  = timeinfo.tm_min;
   int vartti = cur_minute/15;
+  //Serial.println(timeinfo.tm_hour);
+  //Serial.println(timeinfo.tm_min);
   if (ohitetaan){
     digitalWrite(4,HIGH);
     digitalWrite(14, HIGH);
   }
   else if (on_off_arr[cur_hour][vartti] == true){
+
     digitalWrite(4,HIGH);
     digitalWrite(14, HIGH); // LEDI
   }

@@ -86,7 +86,7 @@ void CreateOnOffArray(int  time_slot_arr[24*4], bool on_off_arr[24][4], int num_
       on_off_arr[i][u] =flat_on_off_arr[flat_index];
       flat_index++;
     }
-    Serial.print( "tunilla"); Serial.print(i); Serial.print(" on / off : "); Serial.println(on_off_arr[i][1]);
+    //Serial.print( "tunilla"); Serial.print(i); Serial.print(" on / off : "); Serial.println(on_off_arr[i][1]);
   }
 }
 
