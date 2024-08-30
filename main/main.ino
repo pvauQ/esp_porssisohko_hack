@@ -25,6 +25,7 @@ int used_slots = 0;
 bool need_new_data = true;
 uint on_off_counter = 0; // this just temp, remove when we have non blocking timer
 uint main_upp_counter =0;
+uint reboot_counter = 0;
 bool ohitetaan = false; // onko koko paska käytössä vai ohitetaanko !!
 
 
@@ -80,9 +81,14 @@ void loop()
       on_off_counter =0;
       
       main_upp_counter++;
-      if (main_upp_counter >20){ // käydään netissä ja tehrään kaikki kiva.
+      if (main_upp_counter >20){ // käydään netissä ja tehrään kaikki kiva. / 10 min
         main_upp_counter= 0;
         mainUpdate(); // tämän voisi ajaa paljon harvemminkin( kerran vuorokaudessa). toisaalta näin on aika varmaa että jossain vaiheessa saadaan yhteys ja homma hoituu
+        // kun on ollut kuukauden virroissa, ei jostain syystä enään mene nettiin, joten rebootataan ennen sitä :(
+          reboot_counter++;
+          if (reboot_counter > 144* 14){
+            ESP.restart();
+          }
       }
 
       
