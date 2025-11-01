@@ -10,7 +10,7 @@ FILE_PATH = ""
 def parseToDict(data, date):
         
     date_string = date.strftime("%Y-%m-%d") 
-    tunnit = []
+    tunnit = {}
     if not data:
          return
 
@@ -20,7 +20,7 @@ def parseToDict(data, date):
         for j in range(4):
             tunti.append(data[sourse_index]["hinta"])
             sourse_index +=1
-        tunnit.append(tunti)
+        tunnit[i] = tunti
     res = {"date":date_string,  "tunnit":tunnit}
     return res
 
